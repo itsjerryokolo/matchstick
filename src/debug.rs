@@ -3,7 +3,7 @@ use std::sync::Arc;
 use graph::blockchain::block_stream::BlockWithTriggers;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph_chain_ethereum::Chain;
-use graph_core::subgraph::instance_manager;
+use graph_core::subgraph::instance_manager::process_block;
 
 pub fn get_block() {
     let block = Block {
@@ -33,6 +33,9 @@ pub fn get_block() {
     let block_finality = graph_chain_ethereum::chain::BlockFinality::Final(Arc::new(block));
     let _block_with_triggers: BlockWithTriggers<Chain> =
         BlockWithTriggers::new(block_finality, vec![]);
+
+    // TODO: mock args
+    // process_block();
 
     println!("🦀");
 }
