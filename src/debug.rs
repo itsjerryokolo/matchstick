@@ -4,6 +4,7 @@ use graph::blockchain::block_stream::BlockWithTriggers;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph_chain_ethereum::Chain;
 use graph_core::subgraph::instance_manager::process_block;
+use slog::Logger;
 
 pub fn get_block() {
     let block = Block {
@@ -26,6 +27,7 @@ pub fn get_block() {
         seal_fields: vec!(Bytes::default()),
         uncles: vec!(H256::from_low_u64_be(1)),
         transactions: vec!(),
+        
         size: None,
         mix_hash: None,
         nonce: None,
@@ -35,6 +37,14 @@ pub fn get_block() {
         BlockWithTriggers::new(block_finality, vec![]);
 
     // TODO: mock args
+    // TODO: Generalise and reuse all the mock args
+
+    let _logger = Logger::root(slog::Discard, graph::prelude::o!());
+    // TODO: this type isn't going to work here
+    let _triggers_adapter = Arc::new("str");
+    
+
+
     // process_block();
 
     println!("🦀");
