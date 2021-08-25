@@ -16,19 +16,19 @@ use graph_runtime_wasm::mapping::ValidModule;
 use graph_runtime_wasm::module::ExperimentalFeatures;
 use serde_yaml::{Sequence, Value};
 
+use debug::get_block;
 use subgraph_store::MockSubgraphStore;
+use wasm_instance::WasmInstance;
 use wasm_instance::{
     fail_test, flush_logs, get_failed_tests, get_successful_tests, WasmInstanceExtension,
 };
-use wasm_instance::WasmInstance;
-use debug::get_block;
 
+mod debug;
 mod integration_tests;
 mod subgraph_store;
 mod unit_tests;
 mod wasm_instance;
 mod writable_store;
-mod debug;
 
 fn get_build_path(sequence: Sequence, datasource_name: String) -> String {
     for mapping in sequence {
@@ -102,7 +102,6 @@ pub fn module_from_path(path_to_wasm: &str) -> WasmInstance<Chain> {
 }
 
 pub fn main() {
-
     // todo: just testing
     get_block();
     //...

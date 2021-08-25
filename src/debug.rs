@@ -1,10 +1,28 @@
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use graph::blockchain::block_stream::BlockWithTriggers;
+use graph::blockchain::Blockchain;
+use graph::components::store::{DeploymentId, DeploymentLocator};
+use graph::data::subgraph::UnifiedMappingApiVersion;
+use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
-use graph_chain_ethereum::Chain;
-use graph_core::subgraph::instance_manager::process_block;
+use graph::prelude::web3::Web3;
+use graph::prelude::{CancelGuard, ChainStore, DeploymentHash, StopwatchMetrics};
+use graph::prometheus::{CounterVec, GaugeVec, Opts};
+use graph::semver::Version;
+use graph_chain_ethereum::chain::TriggersAdapter;
+use graph_chain_ethereum::{
+    Chain, EthereumAdapter, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport,
+};
+use graph_core::subgraph::instance_manager::{process_block, IndexingContext, IndexingInputs};
+use graph_mock::MockMetricsRegistry;
+use graph_runtime_test::common::{mock_context, mock_data_source};
 use slog::Logger;
+
+use crate::subgraph_store::MockSubgraphStore;
+use crate::writable_store::MockWritableStore;
 
 pub fn get_block() {
     let block = Block {
@@ -24,28 +42,265 @@ pub fn get_block() {
         timestamp: U256::one(),
         difficulty: U256::one(),
         total_difficulty: None,
-        seal_fields: vec!(Bytes::default()),
-        uncles: vec!(H256::from_low_u64_be(1)),
-        transactions: vec!(),
-        
+        seal_fields: vec![Bytes::default()],
+        uncles: vec![H256::from_low_u64_be(1)],
+        transactions: vec![],
+
         size: None,
         mix_hash: None,
         nonce: None,
     };
     let block_finality = graph_chain_ethereum::chain::BlockFinality::Final(Arc::new(block));
-    let _block_with_triggers: BlockWithTriggers<Chain> =
+    let block_with_triggers: BlockWithTriggers<Chain> =
         BlockWithTriggers::new(block_finality, vec![]);
 
-    // TODO: mock args
     // TODO: Generalise and reuse all the mock args
+    let logger = Logger::root(slog::Discard, graph::prelude::o!());
 
-    let _logger = Logger::root(slog::Discard, graph::prelude::o!());
-    // TODO: this type isn't going to work here
-    let _triggers_adapter = Arc::new("str");
-    
+    let block_stream_canceler = CancelGuard::new();
+    let block_stream_cancel_handle = block_stream_canceler.handle();
 
+    let subgraph_id = "ipfsMap";
 
-    // process_block();
+    let deployment_id = DeploymentHash::new(subgraph_id).expect("Could not create DeploymentHash.");
+
+    let deployment = DeploymentLocator::new(DeploymentId::new(42), deployment_id.clone());
+
+    // TODO: remove hardcoded path to wasm
+    let data_source = mock_data_source("build/Gravity", Version::new(0, 0, 4));
+
+    let mock_subgraph_store = MockSubgraphStore {};
+
+    let mock_writable_store = MockWritableStore {};
+
+    let eth_rpc_metrics = SubgraphEthRpcMetrics {
+        request_duration: Box::new(GaugeVec::new(Opts::new("str", "str"), &["str"]).unwrap()),
+        errors: Box::new(CounterVec::new(Opts::new("str", "str"), &["str"]).unwrap()),
+    };
+
+    let metrics_registry = Arc::new(MockMetricsRegistry::new());
+
+    let stopwatch_metrics = StopwatchMetrics::new(
+        Logger::root(slog::Discard, graph::prelude::o!()),
+        deployment_id.clone(),
+        metrics_registry.clone(),
+    );
+
+    struct MockChainStore {}
+
+    #[async_trait]
+    impl ChainStore for MockChainStore {
+        fn genesis_block_ptr(&self) -> Result<graph::blockchain::BlockPtr, anyhow::Error> {
+            unimplemented!()
+        }
+
+        async fn upsert_block(
+            &self,
+            _block: graph::prelude::EthereumBlock,
+        ) -> Result<(), anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn upsert_light_blocks(
+            &self,
+            _blocks: Vec<graph::prelude::LightEthereumBlock>,
+        ) -> Result<(), anyhow::Error> {
+            unimplemented!()
+        }
+
+        async fn attempt_chain_head_update(
+            self: Arc<Self>,
+            _ancestor_count: graph::prelude::BlockNumber,
+        ) -> Result<Option<H256>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn chain_head_ptr(&self) -> Result<Option<graph::blockchain::BlockPtr>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn blocks(
+            &self,
+            _hashes: Vec<H256>,
+        ) -> Result<Vec<graph::prelude::LightEthereumBlock>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn ancestor_block(
+            &self,
+            _block_ptr: graph::blockchain::BlockPtr,
+            _offset: graph::prelude::BlockNumber,
+        ) -> Result<Option<graph::prelude::EthereumBlock>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn cleanup_cached_blocks(
+            &self,
+            _ancestor_count: graph::prelude::BlockNumber,
+        ) -> Result<Option<(graph::prelude::BlockNumber, usize)>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn block_hashes_by_block_number(
+            &self,
+            _number: graph::prelude::BlockNumber,
+        ) -> Result<Vec<H256>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn confirm_block_hash(
+            &self,
+            _number: graph::prelude::BlockNumber,
+            _hash: &H256,
+        ) -> Result<usize, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn block_number(
+            &self,
+            _block_hash: H256,
+        ) -> Result<Option<(String, graph::prelude::BlockNumber)>, graph::prelude::StoreError>
+        {
+            unimplemented!()
+        }
+
+        async fn transaction_receipts_in_block(
+            &self,
+            _block_ptr: &H256,
+        ) -> Result<
+            Vec<graph::components::transaction_receipt::LightTransactionReceipt>,
+            graph::prelude::StoreError,
+        > {
+            unimplemented!()
+        }
+    }
+
+    let chain_store = MockChainStore {};
+
+    let transport = Transport::RPC(Http::new("url").unwrap().1);
+    let web3 = Web3::new(transport);
+
+    let metrics_registry = Arc::new(MockMetricsRegistry::new());
+
+    let metrics = ProviderEthRpcMetrics::new(metrics_registry);
+
+    let eth_adapter = EthereumAdapter {
+        logger: logger.clone(),
+        url_hostname: Arc::new(String::from("hostname")),
+        provider: String::from("provider"),
+        web3: Arc::new(web3),
+        metrics: Arc::new(metrics),
+        supports_eip_1898: false,
+    };
+
+    let triggers_adapter = TriggersAdapter {
+        logger: logger.clone(),
+        ethrpc_metrics: Arc::new(eth_rpc_metrics),
+        stopwatch_metrics,
+        chain_store: Arc::new(chain_store),
+        eth_adapter: Arc::new(eth_adapter),
+        unified_api_version: UnifiedMappingApiVersion::try_from_versions(
+            vec![&Version::new(0, 0, 5)].into_iter(),
+        )
+        .unwrap(),
+    };
+
+    struct MockChain {}
+
+    #[async_trait]
+    impl Blockchain for MockChain {
+        type Block = String;
+
+        type DataSource = String;
+
+        type UnresolvedDataSource = String;
+
+        type DataSourceTemplate = String;
+
+        type UnresolvedDataSourceTemplate = String;
+
+        type TriggersAdapter = String;
+
+        type TriggerData = String;
+
+        type MappingTrigger = String;
+
+        type TriggerFilter = String;
+
+        type NodeCapabilities = String;
+
+        type IngestorAdapter = String;
+
+        type RuntimeAdapter = String;
+
+        fn triggers_adapter(
+            &self,
+            loc: &DeploymentLocator,
+            capabilities: &Self::NodeCapabilities,
+            unified_api_version: UnifiedMappingApiVersion,
+            stopwatch_metrics: StopwatchMetrics,
+        ) -> Result<Arc<Self::TriggersAdapter>, anyhow::Error> {
+            todo!()
+        }
+
+        async fn new_block_stream(
+            &self,
+            deployment: DeploymentLocator,
+            start_blocks: Vec<graph::prelude::BlockNumber>,
+            filter: Arc<Self::TriggerFilter>,
+            metrics: Arc<graph::blockchain::BlockStreamMetrics>,
+            unified_api_version: UnifiedMappingApiVersion,
+        ) -> Result<Box<dyn graph::blockchain::BlockStream<Self>>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn ingestor_adapter(&self) -> Arc<Self::IngestorAdapter> {
+            unimplemented!()
+        }
+
+        fn chain_store(&self) -> Arc<dyn ChainStore> {
+            unimplemented!()
+        }
+
+        async fn block_pointer_from_number(
+            &self,
+            logger: &Logger,
+            number: graph::prelude::BlockNumber,
+        ) -> Result<graph::blockchain::BlockPtr, graph::blockchain::IngestorError> {
+            unimplemented!()
+        }
+
+        fn runtime_adapter(&self) -> Arc<Self::RuntimeAdapter> {
+            unimplemented!()
+        }
+    }
+
+    let inputs = IndexingInputs {
+        deployment,
+        features: BTreeSet::new(),
+        start_blocks: vec![1],
+        store: Arc::new(mock_writable_store),
+        triggers_adapter: Arc::new("triggers_adapter"),
+        chain: Arc::new("chain"),
+        templates: Arc::new(vec!["fd"]),
+        unified_api_version: (),
+    };
+
+    let indexing_context = IndexingContext {
+        inputs: (),
+        state: (),
+        subgraph_metrics: (),
+        host_metrics: (),
+        block_stream_metrics: (),
+    };
+
+    process_block(
+        &logger,
+        Arc::new(triggers_adapter),
+        ctx,
+        block_stream_cancel_handle.clone(),
+        block_with_triggers,
+    );
 
     println!("🦀");
 }
