@@ -1,32 +1,43 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use ethabi::Contract;
+use futures::sync::mpsc::Sender;
 use graph::blockchain::block_stream::BlockWithTriggers;
-use graph::blockchain::{Blockchain, DataSourceTemplate};
+use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate};
 use graph::components::store::{DeploymentId, DeploymentLocator};
-use graph::data::subgraph::{Mapping, TemplateSource, UnifiedMappingApiVersion};
+use graph::data::subgraph::{DeploymentHash, Mapping, TemplateSource, UnifiedMappingApiVersion};
+use graph::prelude::s::{Definition, DirectiveDefinition, Document};
 use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
 use graph::prelude::{
-    CancelGuard, ChainStore, DeploymentHash, Link, LoggerFactory, MappingABI, MappingBlockHandler,
-    MappingCallHandler, MappingEventHandler, StopwatchMetrics, SubgraphManifest,
+    CancelGuard, ChainStore, DeploymentHash, EthereumCallCache, Link, LoggerFactory, MappingABI,
+    MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId,
+    RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest,
 };
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
+use graph_chain_ethereum::data_source::BaseDataSourceTemplate;
+use graph_chain_ethereum::network::{EthereumNetworkAdapter, EthereumNetworkAdapters};
 use graph_chain_ethereum::{
-    Chain, EthereumAdapter, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport,
+    Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics,
+    SubgraphEthRpcMetrics, Transport,
 };
-use graph_core::subgraph::instance_manager::{process_block, IndexingContext, IndexingInputs};
+use graph_core::subgraph::instance_manager::{
+    process_block, IndexingContext, IndexingInputs, IndexingState,
+};
+use graph_core::subgraph::SubgraphInstance;
 use graph_mock::MockMetricsRegistry;
 use graph_runtime_test::common::{mock_context, mock_data_source};
 use slog::Logger;
 
 use crate::subgraph_store::MockSubgraphStore;
 use crate::writable_store::MockWritableStore;
+use graph::components::subgraph::RuntimeHostBuilder;
 
 pub async fn get_block() {
     let block = Block {
@@ -82,7 +93,7 @@ pub async fn get_block() {
         errors: Box::new(CounterVec::new(Opts::new("str", "str"), &["str"]).unwrap()),
     };
 
-    let metrics_registry = Arc::new(MockMetricsRegistry::new());
+    let metrics_registry = Arc::new(MockMetricsRegistry {});
 
     let stopwatch_metrics = StopwatchMetrics::new(
         Logger::root(slog::Discard, graph::prelude::o!()),
@@ -184,7 +195,7 @@ pub async fn get_block() {
     let transport = Transport::RPC(Http::new("url").unwrap().1);
     let web3 = Web3::new(transport);
 
-    let metrics_registry = Arc::new(MockMetricsRegistry::new());
+    let metrics_registry = Arc::new(MockMetricsRegistry {});
 
     let metrics = ProviderEthRpcMetrics::new(metrics_registry);
 
@@ -202,7 +213,7 @@ pub async fn get_block() {
         ethrpc_metrics: Arc::new(eth_rpc_metrics),
         stopwatch_metrics,
         chain_store: Arc::new(chain_store),
-        eth_adapter: Arc::new(eth_adapter),
+        eth_adapter: Arc::new(eth_adapter.clone()),
         unified_api_version: UnifiedMappingApiVersion::try_from_versions(
             vec![&Version::new(0, 0, 4)].into_iter(),
         )
@@ -214,33 +225,221 @@ pub async fn get_block() {
         elastic_config: None,
     };
 
-    // let chain = Chain {
-    //     logger_factory: (),
-    //     name: (),
-    //     node_id: (),
-    //     registry: (),
-    //     eth_adapters: (),
-    //     ancestor_count: (),
-    //     chain_store: (),
-    //     call_cache: (),
-    //     subgraph_store: (),
-    //     chain_head_update_listener: (),
-    //     reorg_threshold: (),
-    //     is_ingestible: (),
-    // };
+    let node_id = NodeId::new("d").unwrap();
 
-    // let indexing_inputs: IndexingInputs<Chain> = IndexingInputs {
-    //     deployment,
-    //     features: BTreeSet::new(),
-    //     start_blocks: vec![1],
-    //     store: Arc::new(mock_writable_store),
-    //     triggers_adapter: Arc::new(triggers_adapter),
-    //     chain: (),
-    //     templates: (),
-    //     unified_api_version: (),
-    // };
+    struct MockMetricsRegistry {}
 
-    // let indexing_context = IndexingContext{ inputs: (), state: (), subgraph_metrics: (), host_metrics: (), block_stream_metrics: () };
+    impl MetricsRegistry for MockMetricsRegistry {
+        fn register(&self, name: &str, c: Box<dyn graph::prelude::Collector>) {
+            unimplemented!()
+        }
+
+        fn unregister(&self, metric: Box<dyn graph::prelude::Collector>) {
+            unimplemented!()
+        }
+
+        fn global_counter(
+            &self,
+            name: &str,
+            help: &str,
+            const_labels: HashMap<String, String>,
+        ) -> Result<graph::prometheus::Counter, graph::prometheus::Error> {
+            unimplemented!()
+        }
+
+        fn global_gauge(
+            &self,
+            name: &str,
+            help: &str,
+            const_labels: HashMap<String, String>,
+        ) -> Result<graph::prometheus::Gauge, graph::prometheus::Error> {
+            unimplemented!()
+        }
+    }
+
+    let mock_metrics_registry = MockMetricsRegistry {};
+
+    let node_capabilities = NodeCapabilities {
+        archive: false,
+        traces: false,
+    };
+
+    let eth_network_adapter = EthereumNetworkAdapter {
+        capabilities: node_capabilities,
+        adapter: Arc::new(eth_adapter.clone()),
+    };
+
+    let eth_network_adapters = EthereumNetworkAdapters {
+        adapters: vec![eth_network_adapter],
+    };
+
+    let chain_store = MockChainStore {};
+
+    struct MockEthCallCache {}
+
+    impl EthereumCallCache for MockEthCallCache {
+        fn get_call(
+            &self,
+            contract_address: ethabi::Address,
+            encoded_call: &[u8],
+            block: graph::blockchain::BlockPtr,
+        ) -> Result<Option<Vec<u8>>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        fn set_call(
+            &self,
+            contract_address: ethabi::Address,
+            encoded_call: &[u8],
+            block: graph::blockchain::BlockPtr,
+            return_value: &[u8],
+        ) -> Result<(), anyhow::Error> {
+            unimplemented!()
+        }
+    }
+
+    let call_cache = MockEthCallCache {};
+
+    struct MockChainHeadUpdateListener {}
+
+    impl ChainHeadUpdateListener for MockChainHeadUpdateListener {
+        fn subscribe(
+            &self,
+            network: String,
+            logger: Logger,
+        ) -> graph::blockchain::ChainHeadUpdateStream {
+            unimplemented!()
+        }
+    }
+
+    let chain_head_update_listener = MockChainHeadUpdateListener {};
+
+    let chain = Chain {
+        logger_factory,
+        name: String::from("name"),
+        node_id,
+        registry: Arc::new(mock_metrics_registry),
+        eth_adapters: Arc::new(eth_network_adapters),
+        ancestor_count: 1,
+        chain_store: Arc::new(chain_store),
+        call_cache: Arc::new(call_cache),
+        subgraph_store: Arc::new(mock_subgraph_store),
+        chain_head_update_listener: Arc::new(chain_head_update_listener),
+        reorg_threshold: 1,
+        is_ingestible: true,
+    };
+
+    let contract = Contract {
+        constructor: None,
+        functions: HashMap::new(),
+        events: HashMap::new(),
+        receive: false,
+        fallback: false,
+    };
+
+    let mapping_abi = MappingABI {
+        name: String::from("name"),
+        contract,
+    };
+
+    let mapping_block_handler = MappingBlockHandler {
+        handler: String::from("handler"),
+        filter: None,
+    };
+
+    let mapping_call_handler = MappingCallHandler {
+        function: String::from("function"),
+        handler: String::from("handler"),
+    };
+
+    let event_handlers = MappingEventHandler {
+        event: String::from("event"),
+        topic0: None,
+        handler: String::from("handler"),
+    };
+
+    let link = Link {
+        link: String::from("link"),
+    };
+
+    //Arc<Vec<graph_chain_ethereum::data_source::BaseDataSourceTemplate<graph::data::subgraph::Mapping>>>
+    let mapping = Mapping {
+        kind: String::from("kind"),
+        api_version: Version::new(0, 0, 4),
+        language: String::from("language"),
+        entities: vec![String::from("entities")],
+        abis: vec![Arc::new(mapping_abi)],
+        block_handlers: vec![mapping_block_handler],
+        call_handlers: vec![mapping_call_handler],
+        event_handlers: vec![event_handlers],
+        runtime: Arc::new(vec![255, 255, 255, 255]),
+        link,
+    };
+
+    let template_source = TemplateSource {
+        abi: String::from("abi"),
+    };
+
+    let data_source_template = BaseDataSourceTemplate {
+        kind: String::from("kind"),
+        network: None,
+        name: String::from("name"),
+        source: template_source,
+        mapping,
+    };
+
+    let indexing_inputs: IndexingInputs<Chain> = IndexingInputs {
+        deployment,
+        features: BTreeSet::new(),
+        start_blocks: vec![1],
+        store: Arc::new(mock_writable_store),
+        triggers_adapter: Arc::new(triggers_adapter),
+        chain: Arc::new(chain),
+        templates: Arc::new(vec![data_source_template]),
+        unified_api_version: UnifiedMappingApiVersion::try_from_versions(
+            vec![&Version::new(0, 0, 4)].into_iter(),
+        )
+        .unwrap(),
+    };
+
+    let deployment_hash = DeploymentHash::new("s").unwrap();
+
+    let directive_definition = DirectiveDefinition::new("d".to_string());
+
+    let definition = Definition::DirectiveDefinition(directive_definition);
+
+    let document = Document{ definitions: vec!(definition) };
+
+    let schema = Schema {
+        id: deployment_hash.clone(),
+        document,
+        interfaces_for_type: BTreeMap::new(),
+        types_for_interface: BTreeMap::new(),
+    };
+
+    let manifest = SubgraphManifest {
+        id: deployment_hash,
+        spec_version: String::from("spec_version"),
+        features: BTreeSet::new(),
+        description: None,
+        repository: None,
+        schema,
+        data_sources: vec!("data_source"),
+        graft: None,
+        templates: vec!("something"),
+        chain: PhantomData{}
+    };
+
+    let instance =
+        SubgraphInstance::from_manifest(&logger, manifest, host_builder, host_metrics.clone()).unwrap();
+
+    let indexing_context = IndexingContext {
+        inputs: indexing_inputs,
+        state: instance,
+        subgraph_metrics: (),
+        host_metrics: (),
+        block_stream_metrics: (),
+    };
 
     // process_block(
     //     &logger,
