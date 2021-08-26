@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -11,8 +11,8 @@ use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
 use graph::prelude::{
-    CancelGuard, ChainStore, DeploymentHash, Link, MappingABI, MappingBlockHandler,
-    MappingCallHandler, MappingEventHandler, StopwatchMetrics,
+    CancelGuard, ChainStore, DeploymentHash, Link, LoggerFactory, MappingABI, MappingBlockHandler,
+    MappingCallHandler, MappingEventHandler, StopwatchMetrics, SubgraphManifest,
 };
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
@@ -28,7 +28,7 @@ use slog::Logger;
 use crate::subgraph_store::MockSubgraphStore;
 use crate::writable_store::MockWritableStore;
 
-pub fn get_block() {
+pub async fn get_block() {
     let block = Block {
         hash: None,
         parent_hash: H256::from_low_u64_be(1),
@@ -209,86 +209,46 @@ pub fn get_block() {
         .unwrap(),
     };
 
-    // let datasource_templates = DataSourceTemplate {
-    //     kind: String::from("kind"),
-    //     network: None,
-    //     name: String::from("name"),
-    //     source: template_source,
-    //     mapping,
+    let logger_factory = LoggerFactory {
+        parent: logger.clone(),
+        elastic_config: None,
+    };
+
+    // let chain = Chain {
+    //     logger_factory: (),
+    //     name: (),
+    //     node_id: (),
+    //     registry: (),
+    //     eth_adapters: (),
+    //     ancestor_count: (),
+    //     chain_store: (),
+    //     call_cache: (),
+    //     subgraph_store: (),
+    //     chain_head_update_listener: (),
+    //     reorg_threshold: (),
+    //     is_ingestible: (),
     // };
 
-    #[derive(Debug, Clone)]
-    struct MockDataSourceTemplates {}
+    // let indexing_inputs: IndexingInputs<Chain> = IndexingInputs {
+    //     deployment,
+    //     features: BTreeSet::new(),
+    //     start_blocks: vec![1],
+    //     store: Arc::new(mock_writable_store),
+    //     triggers_adapter: Arc::new(triggers_adapter),
+    //     chain: (),
+    //     templates: (),
+    //     unified_api_version: (),
+    // };
 
-    impl DataSourceTemplate<Chain> for MockDataSourceTemplates {
-        fn mapping(&self) -> &Mapping {
-            let template_source = TemplateSource {
-                abi: String::from("abi"),
-            };
+    // let indexing_context = IndexingContext{ inputs: (), state: (), subgraph_metrics: (), host_metrics: (), block_stream_metrics: () };
 
-            let contract = Contract {
-                constructor: None,
-                functions: HashMap::new(),
-                events: HashMap::new(),
-                receive: false,
-                fallback: false,
-            };
-
-            let mapping_abi = MappingABI {
-                name: String::from("name"),
-                contract,
-            };
-
-            let mapping_block_handler = MappingBlockHandler {
-                handler: String::from("handler"),
-                filter: None,
-            };
-
-            let mapping_call_handler = MappingCallHandler {
-                function: String::from("function"),
-                handler: String::from("handler"),
-            };
-
-            let event_handlers = MappingEventHandler {
-                event: String::from("event"),
-                topic0: None,
-                handler: String::from("handler"),
-            };
-
-            let link = Link {
-                link: String::from("link"),
-            };
-
-            let mapping = Mapping {
-                kind: String::from("kind"),
-                api_version: Version::new(0, 0, 4),
-                language: String::from("language"),
-                entities: vec![String::from("entities")],
-                abis: vec![Arc::new(mapping_abi)],
-                block_handlers: vec![mapping_block_handler],
-                call_handlers: vec![mapping_call_handler],
-                event_handlers: vec![event_handlers],
-                runtime: Arc::new(vec![255, 255, 255, 255]),
-                link,
-            };
-
-            &mapping
-        }
-
-        fn name(&self) -> &str {
-            "name"
-        }
-    }
-
-	let mock_datasource_templates = MockDataSourceTemplates{};
-
-    process_block(
-        &logger,
-        Arc::new(triggers_adapter),
-        ctx,
-        block_stream_cancel_handle.clone(),
-        block_with_triggers,
-    );
+    // process_block(
+    //     &logger,
+    //     Arc::new(triggers_adapter),
+    //     ctx,
+    //     block_stream_cancel_handle.clone(),
+    //     block_with_triggers,
+    // );
 
     println!("🦀");
 }

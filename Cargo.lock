@@ -167,7 +167,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1374191e2dd25f9ae02e3aa95041ed5d747fc77b3c102b49fe2dd9a8117a6244"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
  "serde",
@@ -280,9 +280,9 @@ checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "bytes"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
+checksum = "c4872d67bab6358e59559027aa3b9157c53d9358c51423c17554809a8858e0f8"
 
 [[package]]
 name = "cc"
@@ -748,7 +748,7 @@ dependencies = [
  "byteorder",
  "chrono",
  "diesel_derives",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-integer",
  "num-traits",
  "pq-sys",
@@ -1313,14 +1313,14 @@ dependencies = [
 [[package]]
 name = "graph"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "Inflector",
  "anyhow",
  "async-trait",
  "atomic_refcell",
  "bigdecimal",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "chrono",
  "diesel",
  "diesel_derives",
@@ -1335,7 +1335,7 @@ dependencies = [
  "itertools",
  "lazy_static",
  "mockall 0.8.3",
- "num-bigint",
+ "num-bigint 0.2.6",
  "num-traits",
  "num_cpus",
  "parking_lot 0.11.1",
@@ -1369,7 +1369,7 @@ dependencies = [
 [[package]]
 name = "graph-chain-ethereum"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1395,7 +1395,7 @@ dependencies = [
 [[package]]
 name = "graph-core"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -1417,7 +1417,7 @@ dependencies = [
 [[package]]
 name = "graph-graphql"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -1436,7 +1436,7 @@ dependencies = [
 [[package]]
 name = "graph-mock"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1449,7 +1449,7 @@ dependencies = [
 [[package]]
 name = "graph-node"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "clap",
  "crossbeam-channel",
@@ -1484,7 +1484,7 @@ dependencies = [
 [[package]]
 name = "graph-runtime-derive"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "anyhow",
  "quote 1.0.9",
@@ -1494,7 +1494,7 @@ dependencies = [
 [[package]]
 name = "graph-runtime-test"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "graph",
  "graph-chain-ethereum",
@@ -1509,13 +1509,13 @@ dependencies = [
 [[package]]
 name = "graph-runtime-wasm"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "anyhow",
  "async-trait",
  "atomic_refcell",
  "bs58",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "defer",
  "ethabi 12.0.0-graph",
  "futures 0.1.31",
@@ -1535,7 +1535,7 @@ dependencies = [
 [[package]]
 name = "graph-server-http"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1549,7 +1549,7 @@ dependencies = [
 [[package]]
 name = "graph-server-index-node"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "futures 0.3.16",
  "graph",
@@ -1563,7 +1563,7 @@ dependencies = [
 [[package]]
 name = "graph-server-json-rpc"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "graph",
  "jsonrpc-http-server",
@@ -1574,7 +1574,7 @@ dependencies = [
 [[package]]
 name = "graph-server-metrics"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1587,7 +1587,7 @@ dependencies = [
 [[package]]
 name = "graph-server-websocket"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "anyhow",
  "futures 0.1.31",
@@ -1604,7 +1604,7 @@ dependencies = [
 [[package]]
 name = "graph-store-postgres"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -1669,7 +1669,7 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7f3675cfef6a30c8031cf9e6493ebdc3bb3272a3fea3923c4210d1830e6a472"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fnv",
  "futures-core",
  "futures-sink",
@@ -1756,7 +1756,7 @@ version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "527e8c9ac747e28542699a951517aa9a6945af506cd1f2e1b53a576c17b6cc11"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fnv",
  "itoa",
 ]
@@ -1779,7 +1779,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "399c583b2979440c60be0821a6199eca73bc3c8dcd9d070d75ac726e2c6186e5"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "http 0.2.4",
  "pin-project-lite 0.2.7",
 ]
@@ -1866,7 +1866,7 @@ version = "0.14.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13f67199e765030fa08fe0bd581af683f0d5bc04ea09c2b1102012c5fb90e7fd"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -1903,7 +1903,7 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "hyper 0.14.12",
  "native-tls",
  "tokio 1.10.1",
@@ -1995,7 +1995,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f97967975f448f1a7ddb12b0bc41069d09ed6a1c161a92687e057325db35d413"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
 ]
 
 [[package]]
@@ -2153,9 +2153,9 @@ checksum = "3576a87f2ba00f6f106fdfcd16db1d698d648a26ad8e0573cad8537c3c362d2a"
 
 [[package]]
 name = "libc"
-version = "0.2.100"
+version = "0.2.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1fa8cddc8fbbee11227ef194b5317ed014b8acbf15139bd716a18ad3fe99ec5"
+checksum = "3cb00336871be5ed2c8ed44b60ae9959dc5b9f08539422ed43f09e34ecaeba21"
 
 [[package]]
 name = "linked-hash-map"
@@ -2549,6 +2549,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "num"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
+dependencies = [
+ "num-bigint 0.4.0",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2561,12 +2575,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-bigint"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e0d047c1062aa51e256408c560894e5251f08925980e53cf1aa5bd00eec6512"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26873667bbbb7c5182d4a37c1add32cdf09f841af72da53318fdb81543c15085"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2cc698a63b549a70bc047073d2949cce27cd1c7b0a4a862d08a8031bc2801db"
 dependencies = [
  "autocfg 1.0.1",
+ "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2021c8337a54d21aca0d59a92577a029af9431cb59b909b03252b9c164fad59"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
+dependencies = [
+ "autocfg 1.0.1",
+ "num-bigint 0.4.0",
+ "num-integer",
  "num-traits",
 ]
 
@@ -2871,7 +2928,7 @@ version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7871ee579860d8183f542e387b176a25f2656b9fb5211e045397f745a68d1c2"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fallible-iterator",
  "futures 0.3.16",
  "log 0.4.14",
@@ -2887,7 +2944,7 @@ checksum = "ff3e0f70d32e20923cabf2df02913be7c1842d4c772db8065c00fcfdd1d1bff3"
 dependencies = [
  "base64 0.13.0",
  "byteorder",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fallible-iterator",
  "hmac",
  "md-5",
@@ -2903,7 +2960,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "430f4131e1b7657b0cd9a2b0c3408d77c9a43a042d300b8c77f981dffcc43a2f"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fallible-iterator",
  "postgres-protocol",
 ]
@@ -3422,7 +3479,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "246e9f61b9bb77df069a947682be06e31ac43ea37862e244a69f177694ea6d22"
 dependencies = [
  "base64 0.13.0",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "encoding_rs",
  "futures-core",
  "futures-util",
@@ -3594,22 +3651,23 @@ dependencies = [
 
 [[package]]
 name = "security-framework"
-version = "2.3.1"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23a2ac85147a3a11d77ecf1bc7166ec0b92febfa4461c37944e180f319ece467"
+checksum = "5b9bd29cdffb8875b04f71c51058f940cf4e390bbfd2ce669c4f22cd70b492a5"
 dependencies = [
  "bitflags 1.3.2",
  "core-foundation",
  "core-foundation-sys",
  "libc",
+ "num",
  "security-framework-sys",
 ]
 
 [[package]]
 name = "security-framework-sys"
-version = "2.3.0"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e4effb91b4b8b6fb7732e670b6cee160278ff8e6bf485c7805d9e319d76e284"
+checksum = "19133a286e494cc3311c165c4676ccb1fd47bed45b55f9d71fbd784ad4cea6f8"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -4094,7 +4152,7 @@ dependencies = [
 [[package]]
 name = "test-store"
 version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#fad6cf0669671c8e3cbe2ccc2fcc52e6d07f625f"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#355618634cd7dbf09f9239e488e9a88b3275afac"
 dependencies = [
  "diesel",
  "graph",
@@ -4242,7 +4300,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92036be488bb6594459f2e03b60e42df6f937fe6ca5c5ffdcb539c6b84dc40f5"
 dependencies = [
  "autocfg 1.0.1",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "libc",
  "memchr",
  "mio 0.7.13",
@@ -4376,7 +4434,7 @@ checksum = "2d2b1383c7e4fb9a09e292c7c6afb7da54418d53b045f1c1fac7a911411a2b8b"
 dependencies = [
  "async-trait",
  "byteorder",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "fallible-iterator",
  "futures 0.3.16",
  "log 0.4.14",
@@ -4576,7 +4634,7 @@ version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1caa0b0c8d94a049db56b5acf8cba99dc0623aab1b26d5b5f5e2d945846b3592"
 dependencies = [
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "futures-core",
  "futures-sink",
  "log 0.4.14",
@@ -4690,7 +4748,7 @@ checksum = "5fe8dada8c1a3aeca77d6b51a4f1314e0f4b8e438b7b1b71e3ddaca8080e4093"
 dependencies = [
  "base64 0.13.0",
  "byteorder",
- "bytes 1.0.1",
+ "bytes 1.1.0",
  "http 0.2.4",
  "httparse",
  "input_buffer",
