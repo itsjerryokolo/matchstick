@@ -1,15 +1,19 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use ethabi::Contract;
 use graph::blockchain::block_stream::BlockWithTriggers;
-use graph::blockchain::Blockchain;
+use graph::blockchain::{Blockchain, DataSourceTemplate};
 use graph::components::store::{DeploymentId, DeploymentLocator};
-use graph::data::subgraph::UnifiedMappingApiVersion;
+use graph::data::subgraph::{Mapping, TemplateSource, UnifiedMappingApiVersion};
 use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
-use graph::prelude::{CancelGuard, ChainStore, DeploymentHash, StopwatchMetrics};
+use graph::prelude::{
+    CancelGuard, ChainStore, DeploymentHash, Link, MappingABI, MappingBlockHandler,
+    MappingCallHandler, MappingEventHandler, StopwatchMetrics,
+};
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
@@ -200,99 +204,83 @@ pub fn get_block() {
         chain_store: Arc::new(chain_store),
         eth_adapter: Arc::new(eth_adapter),
         unified_api_version: UnifiedMappingApiVersion::try_from_versions(
-            vec![&Version::new(0, 0, 5)].into_iter(),
+            vec![&Version::new(0, 0, 4)].into_iter(),
         )
         .unwrap(),
     };
 
-    struct MockChain {}
+    // let datasource_templates = DataSourceTemplate {
+    //     kind: String::from("kind"),
+    //     network: None,
+    //     name: String::from("name"),
+    //     source: template_source,
+    //     mapping,
+    // };
 
-    #[async_trait]
-    impl Blockchain for MockChain {
-        type Block = String;
+    #[derive(Debug, Clone)]
+    struct MockDataSourceTemplates {}
 
-        type DataSource = String;
+    impl DataSourceTemplate<Chain> for MockDataSourceTemplates {
+        fn mapping(&self) -> &Mapping {
+            let template_source = TemplateSource {
+                abi: String::from("abi"),
+            };
 
-        type UnresolvedDataSource = String;
+            let contract = Contract {
+                constructor: None,
+                functions: HashMap::new(),
+                events: HashMap::new(),
+                receive: false,
+                fallback: false,
+            };
 
-        type DataSourceTemplate = String;
+            let mapping_abi = MappingABI {
+                name: String::from("name"),
+                contract,
+            };
 
-        type UnresolvedDataSourceTemplate = String;
+            let mapping_block_handler = MappingBlockHandler {
+                handler: String::from("handler"),
+                filter: None,
+            };
 
-        type TriggersAdapter = String;
+            let mapping_call_handler = MappingCallHandler {
+                function: String::from("function"),
+                handler: String::from("handler"),
+            };
 
-        type TriggerData = String;
+            let event_handlers = MappingEventHandler {
+                event: String::from("event"),
+                topic0: None,
+                handler: String::from("handler"),
+            };
 
-        type MappingTrigger = String;
+            let link = Link {
+                link: String::from("link"),
+            };
 
-        type TriggerFilter = String;
+            let mapping = Mapping {
+                kind: String::from("kind"),
+                api_version: Version::new(0, 0, 4),
+                language: String::from("language"),
+                entities: vec![String::from("entities")],
+                abis: vec![Arc::new(mapping_abi)],
+                block_handlers: vec![mapping_block_handler],
+                call_handlers: vec![mapping_call_handler],
+                event_handlers: vec![event_handlers],
+                runtime: Arc::new(vec![255, 255, 255, 255]),
+                link,
+            };
 
-        type NodeCapabilities = String;
-
-        type IngestorAdapter = String;
-
-        type RuntimeAdapter = String;
-
-        fn triggers_adapter(
-            &self,
-            loc: &DeploymentLocator,
-            capabilities: &Self::NodeCapabilities,
-            unified_api_version: UnifiedMappingApiVersion,
-            stopwatch_metrics: StopwatchMetrics,
-        ) -> Result<Arc<Self::TriggersAdapter>, anyhow::Error> {
-            todo!()
+            &mapping
         }
 
-        async fn new_block_stream(
-            &self,
-            deployment: DeploymentLocator,
-            start_blocks: Vec<graph::prelude::BlockNumber>,
-            filter: Arc<Self::TriggerFilter>,
-            metrics: Arc<graph::blockchain::BlockStreamMetrics>,
-            unified_api_version: UnifiedMappingApiVersion,
-        ) -> Result<Box<dyn graph::blockchain::BlockStream<Self>>, anyhow::Error> {
-            unimplemented!()
-        }
-
-        fn ingestor_adapter(&self) -> Arc<Self::IngestorAdapter> {
-            unimplemented!()
-        }
-
-        fn chain_store(&self) -> Arc<dyn ChainStore> {
-            unimplemented!()
-        }
-
-        async fn block_pointer_from_number(
-            &self,
-            logger: &Logger,
-            number: graph::prelude::BlockNumber,
-        ) -> Result<graph::blockchain::BlockPtr, graph::blockchain::IngestorError> {
-            unimplemented!()
-        }
-
-        fn runtime_adapter(&self) -> Arc<Self::RuntimeAdapter> {
-            unimplemented!()
+        fn name(&self) -> &str {
+            "name"
         }
     }
 
-    let inputs = IndexingInputs {
-        deployment,
-        features: BTreeSet::new(),
-        start_blocks: vec![1],
-        store: Arc::new(mock_writable_store),
-        triggers_adapter: Arc::new("triggers_adapter"),
-        chain: Arc::new("chain"),
-        templates: Arc::new(vec!["fd"]),
-        unified_api_version: (),
-    };
-
-    let indexing_context = IndexingContext {
-        inputs: (),
-        state: (),
-        subgraph_metrics: (),
-        host_metrics: (),
-        block_stream_metrics: (),
-    };
+	let mock_datasource_templates = MockDataSourceTemplates{};
 
     process_block(
         &logger,
