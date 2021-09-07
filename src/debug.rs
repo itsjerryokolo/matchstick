@@ -4,25 +4,26 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use ethabi::Contract;
-use futures::sync::mpsc::Sender;
 use graph::blockchain::block_stream::BlockWithTriggers;
 use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate};
 use graph::components::store::{DeploymentId, DeploymentLocator};
+use graph::data::subgraph::BaseSubgraphManifest;
 use graph::data::subgraph::{DeploymentHash, Mapping, TemplateSource, UnifiedMappingApiVersion};
 use graph::prelude::s::{Definition, DirectiveDefinition, Document};
 use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
 use graph::prelude::{
-    CancelGuard, ChainStore, DeploymentHash, EthereumCallCache, Link, LoggerFactory, MappingABI,
+    CancelGuard, ChainStore, EthereumCallCache, Link, LoggerFactory, MappingABI,
     MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId,
-    RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest,
+    RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName,
 };
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
 use graph_chain_ethereum::data_source::BaseDataSourceTemplate;
 use graph_chain_ethereum::network::{EthereumNetworkAdapter, EthereumNetworkAdapters};
+use graph_chain_ethereum::network_indexer::subgraph::create_subgraph;
 use graph_chain_ethereum::{
     Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics,
     SubgraphEthRpcMetrics, Transport,
@@ -33,6 +34,7 @@ use graph_core::subgraph::instance_manager::{
 use graph_core::subgraph::SubgraphInstance;
 use graph_mock::MockMetricsRegistry;
 use graph_runtime_test::common::{mock_context, mock_data_source};
+use graph_runtime_wasm::mapping::MappingRequest;
 use slog::Logger;
 
 use crate::subgraph_store::MockSubgraphStore;
@@ -408,7 +410,9 @@ pub async fn get_block() {
 
     let definition = Definition::DirectiveDefinition(directive_definition);
 
-    let document = Document{ definitions: vec!(definition) };
+    let document = Document {
+        definitions: vec![definition],
+    };
 
     let schema = Schema {
         id: deployment_hash.clone(),
@@ -417,29 +421,15 @@ pub async fn get_block() {
         types_for_interface: BTreeMap::new(),
     };
 
-    let manifest = SubgraphManifest {
-        id: deployment_hash,
-        spec_version: String::from("spec_version"),
-        features: BTreeSet::new(),
-        description: None,
-        repository: None,
-        schema,
-        data_sources: vec!("data_source"),
-        graft: None,
-        templates: vec!("something"),
-        chain: PhantomData{}
-    };
+    // TODO: mock ctx
 
-    let instance =
-        SubgraphInstance::from_manifest(&logger, manifest, host_builder, host_metrics.clone()).unwrap();
-
-    let indexing_context = IndexingContext {
-        inputs: indexing_inputs,
-        state: instance,
-        subgraph_metrics: (),
-        host_metrics: (),
-        block_stream_metrics: (),
-    };
+    // let indexing_context = IndexingContext {
+    //     inputs: indexing_inputs,
+    //     state: instance,
+    //     subgraph_metrics: (),
+    //     host_metrics: (),
+    //     block_stream_metrics: (),
+    // };
 
     // process_block(
     //     &logger,

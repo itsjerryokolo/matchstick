@@ -1312,8 +1312,8 @@ dependencies = [
 
 [[package]]
 name = "graph"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -1348,6 +1348,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
+ "serde_plain",
  "serde_yaml",
  "slog",
  "slog-async",
@@ -1368,8 +1369,8 @@ dependencies = [
 
 [[package]]
 name = "graph-chain-ethereum"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1394,8 +1395,8 @@ dependencies = [
 
 [[package]]
 name = "graph-core"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -1416,8 +1417,8 @@ dependencies = [
 
 [[package]]
 name = "graph-graphql"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -1435,8 +1436,8 @@ dependencies = [
 
 [[package]]
 name = "graph-mock"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1448,8 +1449,8 @@ dependencies = [
 
 [[package]]
 name = "graph-node"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "clap",
  "crossbeam-channel",
@@ -1483,8 +1484,8 @@ dependencies = [
 
 [[package]]
 name = "graph-runtime-derive"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "anyhow",
  "quote 1.0.9",
@@ -1493,8 +1494,8 @@ dependencies = [
 
 [[package]]
 name = "graph-runtime-test"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "graph",
  "graph-chain-ethereum",
@@ -1508,8 +1509,8 @@ dependencies = [
 
 [[package]]
 name = "graph-runtime-wasm"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1534,8 +1535,8 @@ dependencies = [
 
 [[package]]
 name = "graph-server-http"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1548,11 +1549,13 @@ dependencies = [
 
 [[package]]
 name = "graph-server-index-node"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
+ "either",
  "futures 0.3.16",
  "graph",
+ "graph-chain-ethereum",
  "graph-graphql",
  "graphql-parser",
  "http 0.2.4",
@@ -1562,8 +1565,8 @@ dependencies = [
 
 [[package]]
 name = "graph-server-json-rpc"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "graph",
  "jsonrpc-http-server",
@@ -1573,8 +1576,8 @@ dependencies = [
 
 [[package]]
 name = "graph-server-metrics"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "futures 0.1.31",
  "graph",
@@ -1586,8 +1589,8 @@ dependencies = [
 
 [[package]]
 name = "graph-server-websocket"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "anyhow",
  "futures 0.1.31",
@@ -1603,8 +1606,8 @@ dependencies = [
 
 [[package]]
 name = "graph-store-postgres"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -3110,9 +3113,9 @@ checksum = "23129d50f2c9355ced935fce8a08bd706ee2e7ce2b3b33bf61dace0e379ac63a"
 
 [[package]]
 name = "psm"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0617ee61163b5d941d804065ce49040967610a4d4278fae73e096a057b01d358"
+checksum = "cd136ff4382c4753fc061cb9e4712ab2af263376b95bbd5bd8cd50c020b78e69"
 dependencies = [
  "cc",
 ]
@@ -3697,6 +3700,9 @@ name = "semver"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "semver-parser"
@@ -3745,6 +3751,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_plain"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "625fb0da2b006092b426a94acc1611bec52f2ec27bb27b266a9f93c29ee38eda"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_regex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3768,9 +3783,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6375dbd828ed6964c3748e4ef6d18e7a175d408ffe184bca01698d0c73f915a9"
+checksum = "ad104641f3c958dab30eb3010e834c2622d1f3f4c530fef1dee20ad9485f3c09"
 dependencies = [
  "dtoa",
  "indexmap",
@@ -4152,8 +4167,8 @@ dependencies = [
 
 [[package]]
 name = "test-store"
-version = "0.23.1"
-source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#babd852c9f283bae1c0132590b6d8a6fcf1c13a7"
+version = "0.24.0"
+source = "git+https://github.com/axiomatic-aardvark/graph-node?branch=master#b9b73b310867a3ec0390c465518d427d67d0201d"
 dependencies = [
  "diesel",
  "graph",
