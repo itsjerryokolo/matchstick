@@ -14,7 +14,7 @@ use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
 use graph::prelude::{
-    CancelGuard, ChainStore, EthereumCallCache, Link, LoggerFactory, MappingABI,
+    CancelGuard, ChainStore, EthereumCallCache, Link, LinkResolver, LoggerFactory, MappingABI,
     MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId,
     RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName,
 };
@@ -422,6 +422,66 @@ pub async fn get_block() {
     };
 
     // TODO: mock ctx
+
+    let mapping = serde_yaml::Mapping::new();
+
+    #[derive(Clone)]
+    struct MockLinkResolver {}
+
+    #[async_trait]
+    impl LinkResolver for MockLinkResolver {
+        fn with_timeout(self, timeout: std::time::Duration) -> Self
+        where
+            Self: Sized,
+        {
+            unimplemented!()
+        }
+
+        fn with_retries(self) -> Self
+        where
+            Self: Sized,
+        {
+            unimplemented!()
+        }
+
+        async fn cat(&self, logger: &Logger, link: &Link) -> Result<Vec<u8>, anyhow::Error> {
+            unimplemented!()
+        }
+
+        async fn json_stream(
+            &self,
+            logger: &Logger,
+            link: &Link,
+        ) -> Result<graph::prelude::JsonValueStream, anyhow::Error> {
+            unimplemented!()
+        }
+    }
+
+    let link_resolver = MockLinkResolver{};
+
+    let mut manifest = SubgraphManifest::resolve_from_raw(
+        deployment.hash.clone(),
+        mapping,
+        // Allow for infinite retries for subgraph definition files.
+        &link_resolver,
+        &logger,
+        Version::new(0, 0, 4),
+    )
+    .await;
+
+    let host_builder = graph_runtime_wasm::RuntimeHostBuilder::new(
+        chain.runtime_adapter(),
+        Arc::from(link_resolver),
+        Arc::new(mock_subgraph_store),
+    );
+
+    // let instance = SubgraphInstance::from_manifest(
+    //     &logger,
+    //     manifest.unwrap(),
+    //     host_builder,
+    //     host_metrics.clone(),
+    // )
+    // .expect("Could not create instance from manifest.");
 
     // let indexing_context = IndexingContext {
     //     inputs: indexing_inputs,
