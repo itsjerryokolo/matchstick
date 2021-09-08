@@ -8,6 +8,7 @@ use graph::{
 use std::result::Result;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct MockSubgraphStore {}
 
 impl SubgraphStore for MockSubgraphStore {

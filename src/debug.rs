@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use ethabi::Contract;
@@ -9,25 +9,21 @@ use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate}
 use graph::components::store::{DeploymentId, DeploymentLocator};
 use graph::data::subgraph::BaseSubgraphManifest;
 use graph::data::subgraph::{DeploymentHash, Mapping, TemplateSource, UnifiedMappingApiVersion};
+use graph::petgraph::graphmap::GraphMap;
 use graph::prelude::s::{Definition, DirectiveDefinition, Document};
 use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
 use graph::prelude::web3::Web3;
-use graph::prelude::{
-    CancelGuard, ChainStore, EthereumCallCache, Link, LinkResolver, LoggerFactory, MappingABI,
-    MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId,
-    RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName,
-};
+use graph::prelude::{CancelGuard, ChainStore, EthereumCallCache, HostMetrics, Link, LinkResolver, LoggerFactory, MappingABI, MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId, RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName};
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
 use graph_chain_ethereum::data_source::BaseDataSourceTemplate;
 use graph_chain_ethereum::network::{EthereumNetworkAdapter, EthereumNetworkAdapters};
 use graph_chain_ethereum::network_indexer::subgraph::create_subgraph;
-use graph_chain_ethereum::{
-    Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics,
-    SubgraphEthRpcMetrics, Transport,
-};
+use graph_chain_ethereum::adapter::EthereumLogFilter;
+use graph_chain_ethereum::adapter::LogFilterNode;
+use graph_chain_ethereum::{Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport, TriggerFilter};
 use graph_core::subgraph::instance_manager::{
     process_block, IndexingContext, IndexingInputs, IndexingState,
 };
@@ -103,6 +99,7 @@ pub async fn get_block() {
         metrics_registry.clone(),
     );
 
+    #[derive(Clone)]
     struct MockChainStore {}
 
     #[async_trait]
@@ -199,7 +196,7 @@ pub async fn get_block() {
 
     let metrics_registry = Arc::new(MockMetricsRegistry {});
 
-    let metrics = ProviderEthRpcMetrics::new(metrics_registry);
+    let metrics = ProviderEthRpcMetrics::new(metrics_registry.clone());
 
     let eth_adapter = EthereumAdapter {
         logger: logger.clone(),
@@ -214,7 +211,7 @@ pub async fn get_block() {
         logger: logger.clone(),
         ethrpc_metrics: Arc::new(eth_rpc_metrics),
         stopwatch_metrics,
-        chain_store: Arc::new(chain_store),
+        chain_store: Arc::new(chain_store.clone()),
         eth_adapter: Arc::new(eth_adapter.clone()),
         unified_api_version: UnifiedMappingApiVersion::try_from_versions(
             vec![&Version::new(0, 0, 4)].into_iter(),
@@ -229,6 +226,7 @@ pub async fn get_block() {
 
     let node_id = NodeId::new("d").unwrap();
 
+    #[derive(Clone)]
     struct MockMetricsRegistry {}
 
     impl MetricsRegistry for MockMetricsRegistry {
@@ -277,6 +275,7 @@ pub async fn get_block() {
 
     let chain_store = MockChainStore {};
 
+    #[derive(Clone)]
     struct MockEthCallCache {}
 
     impl EthereumCallCache for MockEthCallCache {
@@ -302,6 +301,7 @@ pub async fn get_block() {
 
     let call_cache = MockEthCallCache {};
 
+    #[derive(Clone)]
     struct MockChainHeadUpdateListener {}
 
     impl ChainHeadUpdateListener for MockChainHeadUpdateListener {
@@ -317,16 +317,16 @@ pub async fn get_block() {
     let chain_head_update_listener = MockChainHeadUpdateListener {};
 
     let chain = Chain {
-        logger_factory,
+        logger_factory: logger_factory.clone(),
         name: String::from("name"),
-        node_id,
-        registry: Arc::new(mock_metrics_registry),
-        eth_adapters: Arc::new(eth_network_adapters),
+        node_id: node_id.clone(),
+        registry: Arc::new(mock_metrics_registry.clone()),
+        eth_adapters: Arc::new(eth_network_adapters.clone()),
         ancestor_count: 1,
-        chain_store: Arc::new(chain_store),
-        call_cache: Arc::new(call_cache),
-        subgraph_store: Arc::new(mock_subgraph_store),
-        chain_head_update_listener: Arc::new(chain_head_update_listener),
+        chain_store: Arc::new(chain_store.clone()),
+        call_cache: Arc::new(call_cache.clone()),
+        subgraph_store: Arc::new(mock_subgraph_store.clone()),
+        chain_head_update_listener: Arc::new(chain_head_update_listener.clone()),
         reorg_threshold: 1,
         is_ingestible: true,
     };
@@ -459,7 +459,24 @@ pub async fn get_block() {
 
     let link_resolver = MockLinkResolver{};
 
-    let mut manifest = SubgraphManifest::resolve_from_raw(
+    let deployment = DeploymentLocator::new(DeploymentId::new(42), deployment_id.clone());
+
+    let chain = Chain {
+        logger_factory: logger_factory.clone(),
+        name: String::from("name"),
+        node_id,
+        registry: Arc::new(mock_metrics_registry.clone()),
+        eth_adapters: Arc::new(eth_network_adapters.clone()),
+        ancestor_count: 1,
+        chain_store: Arc::new(chain_store.clone()),
+        call_cache: Arc::new(call_cache.clone()),
+        subgraph_store: Arc::new(mock_subgraph_store.clone()),
+        chain_head_update_listener: Arc::new(chain_head_update_listener.clone()),
+        reorg_threshold: 1,
+        is_ingestible: true,
+    };
+
+    let manifest = SubgraphManifest::<Chain>::resolve_from_raw(
         deployment.hash.clone(),
         mapping,
         // Allow for infinite retries for subgraph definition files.
@@ -469,19 +486,46 @@ pub async fn get_block() {
     )
     .await;
 
-    let host_builder = graph_runtime_wasm::RuntimeHostBuilder::new(
+    let host_builder = graph_runtime_wasm::RuntimeHostBuilder::<Chain>::new(
         chain.runtime_adapter(),
-        Arc::from(link_resolver),
+        Arc::new(link_resolver),
         Arc::new(mock_subgraph_store),
     );
 
-    // let instance = SubgraphInstance::from_manifest(
-    //     &logger,
-    //     manifest.unwrap(),
-    //     host_builder,
-    //     host_metrics.clone(),
-    // )
-    // .expect("Could not create instance from manifest.");
+    let stopwatch_metrics = StopwatchMetrics::new(
+        Logger::root(slog::Discard, graph::prelude::o!()),
+        deployment_id.clone(),
+        metrics_registry.clone(),
+    );
+
+    let host_metrics = Arc::new(HostMetrics::new(
+        Arc::new(mock_metrics_registry.clone()),
+        deployment.hash.as_str(),
+        stopwatch_metrics,
+    ));
+
+    let instance = SubgraphInstance::from_manifest(
+        &logger,
+        manifest.unwrap(),
+        host_builder,
+        host_metrics.clone(),
+    )
+    .expect("Could not create instance from manifest.");
+
+    // Arc<std::sync::RwLock<HashMap<DeploymentId, CancelGuard>>>
+
+    let map: HashMap<DeploymentId, CancelGuard> = HashMap::new();
+    let instances = Arc::new(RwLock::new(map));
+
+    // GraphMap<graph_chain_ethereum::adapter::LogFilterNode, (), Undirected>
+
+    // let graph_map: GraphMap<LogFilterNode, (), Undirected> = GraphMap::new();
+
+    // let ethereum_log_filter = EthereumLogFilter{ contracts_and_events_graph: (), wildcard_events: () };
+
+    // let trigger_filter = TriggerFilter{ log: (), call: (), block: () };
+
+    // let indexing_state = IndexingState{ logger, instance, instances, filter: (), entity_lfu_cache: () }
 
     // let indexing_context = IndexingContext {
     //     inputs: indexing_inputs,
