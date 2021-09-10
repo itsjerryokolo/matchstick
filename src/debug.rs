@@ -27,8 +27,6 @@ use graph_chain_ethereum::{Chain, EthereumAdapter, NodeCapabilities, ProviderEth
 use graph_core::subgraph::instance_manager::{process_block, IndexingContext, IndexingInputs, IndexingState, SubgraphInstanceMetrics};
 use graph_core::subgraph::SubgraphInstance;
 
-use graph_runtime_test::common::{mock_data_source};
-
 use slog::Logger;
 use crate::subgraph_store::MockSubgraphStore;
 use crate::writable_store::MockWritableStore;
@@ -37,6 +35,7 @@ use graph::petgraph::Undirected;
 use std::collections::hash_map::RandomState;
 
 use prometheus::core::GenericGauge;
+use serde_yaml::Value;
 
 pub async fn get_block() {
     let block = Block {
@@ -79,9 +78,6 @@ pub async fn get_block() {
     let deployment_id = DeploymentHash::new(subgraph_id).expect("Could not create DeploymentHash.");
 
     let deployment = DeploymentLocator::new(DeploymentId::new(42), deployment_id.clone());
-
-    // TODO: remove hardcoded path to wasm
-    let _data_source = mock_data_source("build/Gravity", Version::new(0, 0, 4));
 
     let mock_subgraph_store = MockSubgraphStore {};
 
@@ -192,7 +188,7 @@ pub async fn get_block() {
 
     let chain_store = MockChainStore {};
 
-    let transport = Transport::RPC(Http::new("url").unwrap().1);
+    let transport = Transport::RPC(Http::new("https://www.google.com/").unwrap().1);
     let web3 = Web3::new(transport);
 
     let metrics_registry = Arc::new(MockMetricsRegistry {});
@@ -232,7 +228,7 @@ pub async fn get_block() {
 
     impl MetricsRegistry for MockMetricsRegistry {
         fn register(&self, _name: &str, _c: Box<dyn graph::prelude::Collector>) {
-            unimplemented!()
+
         }
 
         fn unregister(&self, _metric: Box<dyn graph::prelude::Collector>) {
@@ -424,7 +420,10 @@ pub async fn get_block() {
 
     // TODO: mock ctx
 
-    let mapping = serde_yaml::Mapping::new();
+    let mut mapping = serde_yaml::Mapping::new();
+    mapping.insert(Value::from("specVersion"), Value::from("0.0.4"));
+    mapping.insert(Value::from("schema"), Value::from("0.0.4"));
+
 
     #[derive(Clone)]
     struct MockLinkResolver {}
