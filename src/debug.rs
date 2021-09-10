@@ -1,41 +1,42 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
 use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use ethabi::Contract;
 use graph::blockchain::block_stream::BlockWithTriggers;
-use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate};
-use graph::components::store::{DeploymentId, DeploymentLocator};
+use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate, BlockStreamMetrics};
+use graph::components::store::{DeploymentId, DeploymentLocator, BlockNumber};
 use graph::data::subgraph::BaseSubgraphManifest;
 use graph::data::subgraph::{DeploymentHash, Mapping, TemplateSource, UnifiedMappingApiVersion};
 use graph::petgraph::graphmap::GraphMap;
 use graph::prelude::s::{Definition, DirectiveDefinition, Document};
 use graph::prelude::web3::transports::Http;
-use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256};
+use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256, Address};
 use graph::prelude::web3::Web3;
-use graph::prelude::{CancelGuard, ChainStore, EthereumCallCache, HostMetrics, Link, LinkResolver, LoggerFactory, MappingABI, MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId, RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName};
+use graph::prelude::{CancelGuard, ChainStore, EthereumCallCache, HostMetrics, Link, LinkResolver, LoggerFactory, MappingABI, MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId, RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName, Histogram, HistogramOpts};
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
 use graph_chain_ethereum::data_source::BaseDataSourceTemplate;
 use graph_chain_ethereum::network::{EthereumNetworkAdapter, EthereumNetworkAdapters};
 use graph_chain_ethereum::network_indexer::subgraph::create_subgraph;
-use graph_chain_ethereum::adapter::EthereumLogFilter;
+use graph_chain_ethereum::adapter::{EthereumLogFilter, EventSignature, EthereumCallFilter, FunctionSelector, EthereumBlockFilter};
 use graph_chain_ethereum::adapter::LogFilterNode;
 use graph_chain_ethereum::{Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport, TriggerFilter};
-use graph_core::subgraph::instance_manager::{
-    process_block, IndexingContext, IndexingInputs, IndexingState,
-};
+use graph_core::subgraph::instance_manager::{process_block, IndexingContext, IndexingInputs, IndexingState, SubgraphInstanceMetrics};
 use graph_core::subgraph::SubgraphInstance;
 use graph_mock::MockMetricsRegistry;
 use graph_runtime_test::common::{mock_context, mock_data_source};
 use graph_runtime_wasm::mapping::MappingRequest;
 use slog::Logger;
-
 use crate::subgraph_store::MockSubgraphStore;
 use crate::writable_store::MockWritableStore;
 use graph::components::subgraph::RuntimeHostBuilder;
+use graph::petgraph::Undirected;
+use std::collections::hash_map::RandomState;
+use graph::util::lfu_cache::LfuCache;
+use prometheus::core::GenericGauge;
 
 pub async fn get_block() {
     let block = Block {
@@ -209,8 +210,8 @@ pub async fn get_block() {
 
     let triggers_adapter = TriggersAdapter {
         logger: logger.clone(),
-        ethrpc_metrics: Arc::new(eth_rpc_metrics),
-        stopwatch_metrics,
+        ethrpc_metrics: Arc::new(eth_rpc_metrics.clone()),
+        stopwatch_metrics: stopwatch_metrics.clone(),
         chain_store: Arc::new(chain_store.clone()),
         eth_adapter: Arc::new(eth_adapter.clone()),
         unified_api_version: UnifiedMappingApiVersion::try_from_versions(
@@ -501,7 +502,7 @@ pub async fn get_block() {
     let host_metrics = Arc::new(HostMetrics::new(
         Arc::new(mock_metrics_registry.clone()),
         deployment.hash.as_str(),
-        stopwatch_metrics,
+        stopwatch_metrics.clone(),
     ));
 
     let instance = SubgraphInstance::from_manifest(
@@ -519,29 +520,72 @@ pub async fn get_block() {
 
     // GraphMap<graph_chain_ethereum::adapter::LogFilterNode, (), Undirected>
 
-    // let graph_map: GraphMap<LogFilterNode, (), Undirected> = GraphMap::new();
+    let contracts_and_events_graph: GraphMap<LogFilterNode, (), Undirected> = GraphMap::new();
 
-    // let ethereum_log_filter = EthereumLogFilter{ contracts_and_events_graph: (), wildcard_events: () };
+    let wildcard_events: HashSet<EventSignature, RandomState> = HashSet::new();
 
-    // let trigger_filter = TriggerFilter{ log: (), call: (), block: () };
+    let ethereum_log_filter = EthereumLogFilter{ contracts_and_events_graph, wildcard_events };
 
-    // let indexing_state = IndexingState{ logger, instance, instances, filter: (), entity_lfu_cache: () }
+    let contract_addresses_function_signatures:  HashMap<Address, (BlockNumber, HashSet<FunctionSelector>)> = HashMap::new();
 
-    // let indexing_context = IndexingContext {
-    //     inputs: indexing_inputs,
-    //     state: instance,
-    //     subgraph_metrics: (),
-    //     host_metrics: (),
-    //     block_stream_metrics: (),
-    // };
+    let ethereum_call_filter = EthereumCallFilter{ contract_addresses_function_signatures };
 
-    // process_block(
-    //     &logger,
-    //     Arc::new(triggers_adapter),
-    //     ctx,
-    //     block_stream_cancel_handle.clone(),
-    //     block_with_triggers,
-    // );
+    let ethereum_block_filter = EthereumBlockFilter{ contract_addresses: Default::default(), trigger_every_block: false };
+
+    let trigger_filter = TriggerFilter{ log: ethereum_log_filter, call: ethereum_call_filter, block: ethereum_block_filter };
+
+    let indexing_state = IndexingState{ logger: logger.clone(), instance, instances, filter: trigger_filter, entity_lfu_cache: Default::default() };
+
+    let histogram = Histogram::with_opts(HistogramOpts { common_opts: Opts {
+        namespace: "".to_string(),
+        subsystem: "".to_string(),
+        name: "".to_string(),
+        help: "".to_string(),
+        const_labels: Default::default(),
+        variable_labels: vec![]
+    }, buckets: vec![] }).unwrap();
+
+    let subgraph_instance_metrics = SubgraphInstanceMetrics{
+        block_trigger_count: Box::new(histogram.clone()),
+        block_processing_duration: Box::new(histogram.clone()),
+        block_ops_transaction_duration: Box::new(histogram.clone()),
+        trigger_processing_duration: Box::new(histogram.clone())
+    };
+
+    let block_stream_metrics = Arc::new(BlockStreamMetrics {
+        deployment_head: Box::new(GenericGauge::new(String::from("hello"), "f").unwrap()),
+        deployment_failed: Box::new(GenericGauge::new(String::from("hello"), "f").unwrap()),
+        reverted_blocks: Box::new(GenericGauge::new(String::from("hello"), "f").unwrap()),
+        stopwatch: stopwatch_metrics.clone()
+    });
+
+    let indexing_context = IndexingContext {
+        inputs: indexing_inputs,
+        state: indexing_state,
+        subgraph_metrics: Arc::new(subgraph_instance_metrics),
+        host_metrics,
+        block_stream_metrics
+    };
+
+    let triggers_adapter = TriggersAdapter {
+        logger: logger.clone(),
+        ethrpc_metrics: Arc::new(eth_rpc_metrics.clone()),
+        stopwatch_metrics: stopwatch_metrics.clone(),
+        chain_store: Arc::new(chain_store.clone()),
+        eth_adapter: Arc::new(eth_adapter.clone()),
+        unified_api_version: UnifiedMappingApiVersion::try_from_versions(
+            vec![&Version::new(0, 0, 4)].into_iter(),
+        )
+            .unwrap(),
+    };
+
+    process_block(
+        &logger,
+        Arc::new(triggers_adapter),
+        indexing_context,
+        block_stream_cancel_handle.clone(),
+        block_with_triggers,
+    ).await;
 
     println!("🦀");
 }
