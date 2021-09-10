@@ -101,9 +101,10 @@ pub fn module_from_path(path_to_wasm: &str) -> WasmInstance<Chain> {
     .expect("Could not create WasmInstance from valid module with context.")
 }
 
-pub fn main() {
+#[tokio::main]
+async fn main() {
     // todo: just testing
-    get_block();
+    get_block().await;
     //...
 
     let matches = App::new("Matchstick 🔥")
@@ -180,7 +181,7 @@ ___  ___      _       _         _   _      _
 
     println!("{}", ("Igniting tests 🔥\n").to_string().bright_red());
 
-    #[allow(non_fmt_panic)]
+    #[allow(non_fmt_panics)]
         run_tests.call(&[]).unwrap_or_else(|err| {
 
         fail_test("".to_string());

@@ -1,41 +1,41 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::marker::PhantomData;
+
 use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use ethabi::Contract;
 use graph::blockchain::block_stream::BlockWithTriggers;
-use graph::blockchain::{Blockchain, ChainHeadUpdateListener, DataSourceTemplate, BlockStreamMetrics};
+use graph::blockchain::{Blockchain, ChainHeadUpdateListener, BlockStreamMetrics};
 use graph::components::store::{DeploymentId, DeploymentLocator, BlockNumber};
-use graph::data::subgraph::BaseSubgraphManifest;
+
 use graph::data::subgraph::{DeploymentHash, Mapping, TemplateSource, UnifiedMappingApiVersion};
 use graph::petgraph::graphmap::GraphMap;
 use graph::prelude::s::{Definition, DirectiveDefinition, Document};
 use graph::prelude::web3::transports::Http;
 use graph::prelude::web3::types::{Block, Bytes, H160, H256, U256, Address};
 use graph::prelude::web3::Web3;
-use graph::prelude::{CancelGuard, ChainStore, EthereumCallCache, HostMetrics, Link, LinkResolver, LoggerFactory, MappingABI, MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId, RuntimeHost, Schema, StopwatchMetrics, SubgraphManifest, SubgraphName, Histogram, HistogramOpts};
+use graph::prelude::{CancelGuard, ChainStore, EthereumCallCache, HostMetrics, Link, LinkResolver, LoggerFactory, MappingABI, MappingBlockHandler, MappingCallHandler, MappingEventHandler, MetricsRegistry, NodeId, Schema, StopwatchMetrics, SubgraphManifest, Histogram, HistogramOpts};
 use graph::prometheus::{CounterVec, GaugeVec, Opts};
 use graph::semver::Version;
 use graph_chain_ethereum::chain::TriggersAdapter;
 use graph_chain_ethereum::data_source::BaseDataSourceTemplate;
 use graph_chain_ethereum::network::{EthereumNetworkAdapter, EthereumNetworkAdapters};
-use graph_chain_ethereum::network_indexer::subgraph::create_subgraph;
+
 use graph_chain_ethereum::adapter::{EthereumLogFilter, EventSignature, EthereumCallFilter, FunctionSelector, EthereumBlockFilter};
 use graph_chain_ethereum::adapter::LogFilterNode;
-use graph_chain_ethereum::{Chain, DataSource, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport, TriggerFilter};
+use graph_chain_ethereum::{Chain, EthereumAdapter, NodeCapabilities, ProviderEthRpcMetrics, SubgraphEthRpcMetrics, Transport, TriggerFilter};
 use graph_core::subgraph::instance_manager::{process_block, IndexingContext, IndexingInputs, IndexingState, SubgraphInstanceMetrics};
 use graph_core::subgraph::SubgraphInstance;
-use graph_mock::MockMetricsRegistry;
-use graph_runtime_test::common::{mock_context, mock_data_source};
-use graph_runtime_wasm::mapping::MappingRequest;
+
+use graph_runtime_test::common::{mock_data_source};
+
 use slog::Logger;
 use crate::subgraph_store::MockSubgraphStore;
 use crate::writable_store::MockWritableStore;
-use graph::components::subgraph::RuntimeHostBuilder;
+
 use graph::petgraph::Undirected;
 use std::collections::hash_map::RandomState;
-use graph::util::lfu_cache::LfuCache;
+
 use prometheus::core::GenericGauge;
 
 pub async fn get_block() {
@@ -81,7 +81,7 @@ pub async fn get_block() {
     let deployment = DeploymentLocator::new(DeploymentId::new(42), deployment_id.clone());
 
     // TODO: remove hardcoded path to wasm
-    let data_source = mock_data_source("build/Gravity", Version::new(0, 0, 4));
+    let _data_source = mock_data_source("build/Gravity", Version::new(0, 0, 4));
 
     let mock_subgraph_store = MockSubgraphStore {};
 
@@ -231,28 +231,28 @@ pub async fn get_block() {
     struct MockMetricsRegistry {}
 
     impl MetricsRegistry for MockMetricsRegistry {
-        fn register(&self, name: &str, c: Box<dyn graph::prelude::Collector>) {
+        fn register(&self, _name: &str, _c: Box<dyn graph::prelude::Collector>) {
             unimplemented!()
         }
 
-        fn unregister(&self, metric: Box<dyn graph::prelude::Collector>) {
+        fn unregister(&self, _metric: Box<dyn graph::prelude::Collector>) {
             unimplemented!()
         }
 
         fn global_counter(
             &self,
-            name: &str,
-            help: &str,
-            const_labels: HashMap<String, String>,
+            _name: &str,
+            _help: &str,
+            _const_labels: HashMap<String, String>,
         ) -> Result<graph::prometheus::Counter, graph::prometheus::Error> {
             unimplemented!()
         }
 
         fn global_gauge(
             &self,
-            name: &str,
-            help: &str,
-            const_labels: HashMap<String, String>,
+            _name: &str,
+            _help: &str,
+            _const_labels: HashMap<String, String>,
         ) -> Result<graph::prometheus::Gauge, graph::prometheus::Error> {
             unimplemented!()
         }
@@ -282,19 +282,19 @@ pub async fn get_block() {
     impl EthereumCallCache for MockEthCallCache {
         fn get_call(
             &self,
-            contract_address: ethabi::Address,
-            encoded_call: &[u8],
-            block: graph::blockchain::BlockPtr,
+            _contract_address: ethabi::Address,
+            _encoded_call: &[u8],
+            _block: graph::blockchain::BlockPtr,
         ) -> Result<Option<Vec<u8>>, anyhow::Error> {
             unimplemented!()
         }
 
         fn set_call(
             &self,
-            contract_address: ethabi::Address,
-            encoded_call: &[u8],
-            block: graph::blockchain::BlockPtr,
-            return_value: &[u8],
+            _contract_address: ethabi::Address,
+            _encoded_call: &[u8],
+            _block: graph::blockchain::BlockPtr,
+            _return_value: &[u8],
         ) -> Result<(), anyhow::Error> {
             unimplemented!()
         }
@@ -308,8 +308,8 @@ pub async fn get_block() {
     impl ChainHeadUpdateListener for MockChainHeadUpdateListener {
         fn subscribe(
             &self,
-            network: String,
-            logger: Logger,
+            _network: String,
+            _logger: Logger,
         ) -> graph::blockchain::ChainHeadUpdateStream {
             unimplemented!()
         }
@@ -415,7 +415,7 @@ pub async fn get_block() {
         definitions: vec![definition],
     };
 
-    let schema = Schema {
+    let _schema = Schema {
         id: deployment_hash.clone(),
         document,
         interfaces_for_type: BTreeMap::new(),
@@ -431,7 +431,7 @@ pub async fn get_block() {
 
     #[async_trait]
     impl LinkResolver for MockLinkResolver {
-        fn with_timeout(self, timeout: std::time::Duration) -> Self
+        fn with_timeout(self, _timeout: std::time::Duration) -> Self
         where
             Self: Sized,
         {
@@ -445,14 +445,14 @@ pub async fn get_block() {
             unimplemented!()
         }
 
-        async fn cat(&self, logger: &Logger, link: &Link) -> Result<Vec<u8>, anyhow::Error> {
+        async fn cat(&self, _logger: &Logger, _link: &Link) -> Result<Vec<u8>, anyhow::Error> {
             unimplemented!()
         }
 
         async fn json_stream(
             &self,
-            logger: &Logger,
-            link: &Link,
+            _logger: &Logger,
+            _link: &Link,
         ) -> Result<graph::prelude::JsonValueStream, anyhow::Error> {
             unimplemented!()
         }
@@ -585,7 +585,7 @@ pub async fn get_block() {
         indexing_context,
         block_stream_cancel_handle.clone(),
         block_with_triggers,
-    ).await;
+    ).await.unwrap();
 
     println!("🦀");
 }
