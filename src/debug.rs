@@ -33,9 +33,9 @@ use crate::writable_store::MockWritableStore;
 
 use graph::petgraph::Undirected;
 use std::collections::hash_map::RandomState;
+use anyhow::anyhow;
 
 use prometheus::core::GenericGauge;
-use serde_yaml::Value;
 
 pub async fn get_block() {
     let block = Block {
@@ -418,15 +418,10 @@ pub async fn get_block() {
         types_for_interface: BTreeMap::new(),
     };
 
-    // TODO: mock ctx
-
-    let mut mapping = serde_yaml::Mapping::new();
-    mapping.insert(Value::from("specVersion"), Value::from("0.0.4"));
-    mapping.insert(Value::from("schema"), Value::from("0.0.4"));
-
-
-    #[derive(Clone)]
-    struct MockLinkResolver {}
+    #[derive(Clone, Debug)]
+    struct MockLinkResolver {
+        texts: HashMap<String, Vec<u8>>,
+    }
 
     #[async_trait]
     impl LinkResolver for MockLinkResolver {
@@ -444,8 +439,14 @@ pub async fn get_block() {
             unimplemented!()
         }
 
-        async fn cat(&self, _logger: &Logger, _link: &Link) -> Result<Vec<u8>, anyhow::Error> {
-            unimplemented!()
+        async fn cat(&mut self, logger: &Logger, link: &Link) -> Result<Vec<u8>, anyhow::Error> {
+
+            self.texts.insert(String::from("hello"), vec!(1));
+
+            self.texts
+                .get("key")
+                .ok_or(anyhow!("No text for {}", &link.link))
+                .map(Clone::clone)
         }
 
         async fn json_stream(
@@ -457,7 +458,11 @@ pub async fn get_block() {
         }
     }
 
-    let link_resolver = MockLinkResolver{};
+    let mut link_resolver = MockLinkResolver{
+        texts: HashMap::new()
+    };
+
+    // link_resolver.texts.insert("key".to_string(), vec!(2));
 
     let deployment = DeploymentLocator::new(DeploymentId::new(42), deployment_id.clone());
 
@@ -476,6 +481,12 @@ pub async fn get_block() {
         is_ingestible: true,
     };
 
+    let subgraph_yaml_contents = std::fs::read_to_string("subgraph.yaml").unwrap();
+
+    let mapping = serde_yaml::from_str(&subgraph_yaml_contents).unwrap();
+
+    // let mapping = serde_yaml::Mapping::new();
+
     let manifest = SubgraphManifest::<Chain>::resolve_from_raw(
         deployment.hash.clone(),
         mapping,
@@ -484,7 +495,7 @@ pub async fn get_block() {
         &logger,
         Version::new(0, 0, 4),
     )
-    .await;
+    .await.unwrap();
 
     let host_builder = graph_runtime_wasm::RuntimeHostBuilder::<Chain>::new(
         chain.runtime_adapter(),
@@ -506,7 +517,7 @@ pub async fn get_block() {
 
     let instance = SubgraphInstance::from_manifest(
         &logger,
-        manifest.unwrap(),
+        manifest,
         host_builder,
         host_metrics.clone(),
     )
